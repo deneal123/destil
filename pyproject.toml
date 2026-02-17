@@ -1,0 +1,36 @@
+[project]
+name = "destil"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "GravyTalk",email = "deneaL123@mail.ru"}
+]
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "torch (==2.7.1)",
+    "torchvision (==0.22.1)",
+    "torchaudio (==2.7.1)",
+    "lerobot (>=0.4.3,<0.5.0)",
+    "transformers (==4.57.6)",
+    "onnx (==1.20.1)",
+    "fvcore (>=0.1.5.post20221221,<0.2.0)",
+    "torchprofile (>=0.0.4,<0.0.5)",
+    "num2words (>=0.5.14,<0.6.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+priority = "explicit"
+
+
+[tool.poetry.dependencies]
+torch = {source = "pytorch-cu126"}
+torchvision = {source = "pytorch-cu126"}
+torchaudio = {source = "pytorch-cu126"}
