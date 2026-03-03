@@ -2,6 +2,13 @@
 
 A comprehensive framework for optimizing SmolVLA (Vision-Language-Action) models for robotics applications using knowledge distillation, quantization, and other optimization techniques.
 
+## Reports
+
+- [x] [ReportHW1](https://github.com/deneal123/distil/blob/dev/docs/hw1_report.md)
+- [x] [ReportHW2](https://github.com/deneal123/distil/blob/dev/docs/hw2_report.md)
+- [x] [ReportHW3](https://github.com/deneal123/distil/blob/dev/docs/hw3_report.md)
+
+
 ## Features
 
 - **Knowledge Distillation**: Teacher-student architecture with advanced loss functions
