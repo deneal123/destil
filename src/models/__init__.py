@@ -1,16 +1,13 @@
 from .teacher import RealSmolVLAModel
-from .student import StudentModel, QuantizedSmolVLAModel, quantize_model
-from .distillation import DistillationFramework
-from .quantization import SmolVLAQuantizer
-from .smolvla_analysis import SmolVLAAnalyzer
+from .student import StudentModel
+from .distillation import DistillationLoss
+from .smolvla_analysis import ModelAnalyzer, CompressionMetrics, analyze_distillation
 
 __all__ = [
     'RealSmolVLAModel',
     'StudentModel', 
-    'QuantizedSmolVLAModel',
-    'quantize_model',
-    'DistillationFramework',
-    'SmolVLAQuantizer',
-    'SmolVLAAnalyzer'
+    'DistillationLoss',
+    'ModelAnalyzer',
+    'CompressionMetrics',
+    'analyze_distillation'
 ]
-

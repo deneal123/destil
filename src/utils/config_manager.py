@@ -284,11 +284,11 @@ if __name__ == "__main__":
     # Create default configurations
     default_configs = config_manager.create_default_configs()
     
-    print("Available default configurations:")
+    logger.info("Available default configurations:")
     for name, config in default_configs.items():
-        print(f"\n{name}:")
-        print(config_manager.generate_config_summary(config))
-        print("-" * 50)
+        logger.info(f"\n{name}:")
+        logger.info(config_manager.generate_config_summary(config))
+        logger.info("-" * 50)
     
     # Save all default configurations
     for name, config in default_configs.items():
@@ -299,16 +299,4 @@ if __name__ == "__main__":
     experiment_dir = config_manager.create_experiment_directory(test_config)
     config_manager.log_experiment_start(test_config, experiment_dir)
     
-    print(f"\nCreated experiment directory: {experiment_dir}")
-
-# NOTE: Configuration manager centralizes experiment configuration and tracking
-# IMPLEMENTED: Added support for YAML configuration files
-# IMPLEMENTED: Added configuration validation and schema checking
-# IMPLEMENTED: Added support for hyperparameter sweeps
-# IMPLEMENTED: Added configuration inheritance and templates
-# IMPLEMENTED: Added support for remote configuration storage
-# IMPLEMENTED: Added configuration versioning and management
-# IMPLEMENTED: Added support for experiment comparison and analysis
-# IMPLEMENTED: Added configuration export for model deployment
-# IMPLEMENTED: Added support for dynamic configuration updates during training
-# IMPLEMENTED: Added support for cloud-based experiment tracking
+    logger.info(f"\nCreated experiment directory: {experiment_dir}")

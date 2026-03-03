@@ -1,102 +1,113 @@
 import torch
 import torch.nn as nn
 
-from .constants import (
-    STUDENT_INPUT_DIM,
-    STUDENT_MIN_HIDDEN_DIM,
-    STUDENT_ACTION_DIM,
-    STUDENT_MIN_LAYERS,
-    STUDENT_MIN_HEADS,
-    TEACHER_ENCODER_OUTPUT_DIM,
-    TEACHER_TRANSFORMER_NUM_LAYERS,
-    TEACHER_TRANSFORMER_NHEAD
-)
-
 
 class StudentModel(nn.Module):
+    """
+    Student model for knowledge distillation.
     
-    def __init__(self, ratio=0.5):
+    Architecture matches SmolVLA teacher but with scaled dimensions:
+    - Same activation (GELU)
+    - Same dropout
+    - Same layer structure
+    - Scaled hidden dimensions, heads, and layers
+    
+    Input: Multi-view images (2 cameras, 256x256x3) + state (6 or 8-dim)
+    Output: Actions (6-dim to match teacher)
+    """
+    
+    def __init__(self, ratio: float = 0.5, action_dim: int = 6, num_cameras: int = 2, state_dim: int = 6):
         super().__init__()
-        hidden = max(int(TEACHER_ENCODER_OUTPUT_DIM * ratio), STUDENT_MIN_HIDDEN_DIM)
-        self.encoder = nn.Sequential(
-            nn.Linear(STUDENT_INPUT_DIM, hidden),
-            nn.ReLU(),
-            nn.Linear(hidden, hidden),
-            nn.ReLU()
-        )
-        layers = max(int(TEACHER_TRANSFORMER_NUM_LAYERS * ratio), STUDENT_MIN_LAYERS)
-        self.transformer = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(
-                d_model=hidden, 
-                nhead=max(int(TEACHER_TRANSFORMER_NHEAD * ratio), STUDENT_MIN_HEADS), 
-                dim_feedforward=hidden*2, 
-                batch_first=True
-            ),
-            num_layers=layers
-        )
-        self.action_head = nn.Linear(hidden, STUDENT_ACTION_DIM)
-    
-    def forward(self, img_features, state=None):
-        x = self.encoder(img_features)
-        x = x.unsqueeze(1)
-        x = self.transformer(x)
-        x = x.squeeze(1)
-        return self.action_head(x)
-    
-    def get_features(self, x):
-        x = self.encoder(x)
-        x = x.unsqueeze(1)
-        x = self.transformer(x)
-        return x.squeeze(1)
-    
-    def get_num_parameters(self):
-        return sum(p.numel() for p in self.parameters())
-    
-
-
-class QuantizedSmolVLAModel(nn.Module):
-    
-    def __init__(self, model):
-        super().__init__()
-        self.model = model
-        self.quant = torch.quantization.QuantStub()
-        self.dequant = torch.quantization.DeQuantStub()
+        self.action_dim = action_dim  # Should match teacher (6)
+        self.num_cameras = num_cameras
+        self.state_dim = state_dim  # SmolVLA expects 6-dim state
         
-    def forward(self, img_features, state=None, **kwargs):
-        img_features = self.quant(img_features)
-        if hasattr(self.model, 'forward'):
-            output = self.model.forward(img_features, state, **kwargs)
+        # Scale dimensions but keep minimum values
+        hidden = max(int(512 * ratio), 64)  # Minimum 64
+        hidden_1 = max(int(hidden * 2), 128)  # Minimum 128
+        hidden_2 = max(int(hidden * 1.5), 96)  # Minimum 96
+        
+        # Image encoder (simplified CNN for each camera)
+        # Input: 2 cameras x [3, 256, 256] -> concatenate -> [6, 256, 256]
+        self.image_encoder = nn.Sequential(
+            nn.Conv2d(3 * num_cameras, 64, kernel_size=7, stride=2, padding=3),
+            nn.GELU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(64, 128, kernel_size=5, stride=2, padding=2),
+            nn.GELU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
+            nn.GELU(),
+            nn.AdaptiveAvgPool2d((1, 1)),  # Global pooling
+            nn.Flatten(),
+            nn.Linear(256, hidden_1),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(hidden_1, hidden_2),
+            nn.GELU(),
+            nn.Dropout(0.1),
+        )
+        
+        # State encoder (6-dim state from SmolVLA)
+        self.state_encoder = nn.Sequential(
+            nn.Linear(state_dim, hidden),
+            nn.GELU(),
+            nn.Dropout(0.1),
+        )
+        
+        # Combined features dimension
+        combined_dim = hidden_2 + hidden
+        
+        # Feature fusion
+        self.feature_fusion = nn.Sequential(
+            nn.Linear(combined_dim, hidden),
+            nn.GELU(),
+            nn.LayerNorm(hidden)
+        )
+        
+        # Action head (7-dim action for libero)
+        self.action_head = nn.Linear(hidden, action_dim)
+    
+    def forward(self, images: torch.Tensor, state: torch.Tensor = None) -> torch.Tensor:
+        """
+        Forward pass.
+        
+        Args:
+            images: Multi-view images [batch, num_cameras*3, H, W] or [batch, 3, H, W] for single camera
+            state: Robot state [batch, 8]
+        
+        Returns:
+            Predicted actions [batch, action_dim]
+        """
+        # Encode images
+        img_features = self.image_encoder(images)
+        
+        # Encode state
+        if state is not None:
+            state_features = self.state_encoder(state)
+            # Combine features
+            combined = torch.cat([img_features, state_features], dim=-1)
         else:
-            output = self.model(img_features, state, **kwargs)
-        output = self.dequant(output)
-        return output
+            combined = img_features
+        
+        # Fuse features
+        features = self.feature_fusion(combined)
+        
+        # Predict actions
+        return self.action_head(features)
     
-    def prepare_qat(self):
-        return torch.quantization.prepare_qat(self, inplace=False)
+    def get_features(self, images: torch.Tensor, state: torch.Tensor = None) -> torch.Tensor:
+        """Extract features without action prediction."""
+        img_features = self.image_encoder(images)
+        
+        if state is not None:
+            state_features = self.state_encoder(state)
+            combined = torch.cat([img_features, state_features], dim=-1)
+        else:
+            combined = img_features
+        
+        return self.feature_fusion(combined)
     
-    def convert(self):
-        return torch.quantization.convert(self, inplace=False)
-
-
-def quantize_model(model, dataloader, device, num_calibration_batches=10):
-    quantized_model = QuantizedSmolVLAModel(model)
-
-    quantized_model.eval()
-    quantized_model.model.eval()
-    
-    print(f"Starting quantization calibration with {num_calibration_batches} batches...")
-    with torch.no_grad():
-        calib_count = 0
-        for batch_idx, (img, state, action) in enumerate(dataloader):
-            if calib_count >= num_calibration_batches:
-                break
-            
-            img, state = img.to(device), state.to(device)
-            
-            _ = quantized_model(img, state)
-            calib_count += 1
-    
-    quantized_model_converted = quantized_model.convert()
-    
-    print("Quantization completed!")
-    return quantized_model_converted
+    def get_num_parameters(self) -> int:
+        """Return total number of parameters."""
+        return sum(p.numel() for p in self.parameters())

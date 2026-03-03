@@ -6,12 +6,13 @@ from typing import Dict, Any, Optional, Union, List
 import json
 import os
 import logging
-from pathlib import Path
+
+from .smolvla_analysis import SmolVLAAnalyzer
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from src.models.smolvla_analysis import SmolVLAAnalyzer
 
 class QuantizationConfig:
     
@@ -316,10 +317,10 @@ class SmolVLAQuantizer:
             return "Poor"
     
     def benchmark_quantized_performance(self, model_key: str) -> Dict[str, Any]:
-        print(f"Benchmarking performance for {model_key}...")
+        logger.info(f"Benchmarking performance for {model_key}...")
         
         if model_key not in self.quantized_models:
-            print(f"Model {model_key} not found")
+            logger.error(f"Model {model_key} not found")
             return {}
         
         model = self.quantized_models[model_key]
@@ -361,16 +362,16 @@ class SmolVLAQuantizer:
             "baseline_latency_ms", 15.0)  # Default from our baseline
         performance_results["speedup_ratio"] = baseline_latency / performance_results["mean_latency_ms"]
         
-        print(f"  Mean latency: {performance_results['mean_latency_ms']:.2f} ms")
-        print(f"  Speedup ratio: {performance_results['speedup_ratio']:.2f}x")
-        print(f"  Throughput: {performance_results['throughput_ips']:.1f} inferences/sec")
+        logger.info(f"  Mean latency: {performance_results['mean_latency_ms']:.2f} ms")
+        logger.info(f"  Speedup ratio: {performance_results['speedup_ratio']:.2f}x")
+        logger.info(f"  Throughput: {performance_results['throughput_ips']:.1f} inferences/sec")
         
         return performance_results
     
     def run_complete_quantization_pipeline(self) -> Dict[str, Any]:
-        print("="*60)
-        print("COMPLETE QUANTIZATION PIPELINE")
-        print("="*60)
+        logger.info("="*60)
+        logger.info("COMPLETE QUANTIZATION PIPELINE")
+        logger.info("="*60)
         
         results = {
             "timestamp": self._get_timestamp(),
@@ -382,7 +383,7 @@ class SmolVLAQuantizer:
         
         for config in quantization_configs:
             try:
-                print(f"\n--- Applying {config.upper()} quantization ---")
+                logger.info(f"\n--- Applying {config.upper()} quantization ---")
                 quantized_model = self.apply_dynamic_quantization(config)
                 accuracy_results = self.evaluate_quantization_accuracy(quantized_model, f"dynamic_{config}")
                 performance_results = self.benchmark_quantized_performance(f"dynamic_{config}")
@@ -392,11 +393,11 @@ class SmolVLAQuantizer:
                 }
                 
             except Exception as e:
-                print(f"❌ Failed to apply {config} quantization: {e}")
+                logger.error(f"Failed to apply {config} quantization: {e}")
                 results["quantization_methods"][config] = {"error": str(e)}
 
         try:
-            print(f"\n--- Applying STATIC INT8 quantization ---")
+            logger.info(f"\n--- Applying STATIC INT8 quantization ---")
             static_model = self.apply_static_quantization()
             accuracy_results = self.evaluate_quantization_accuracy(static_model, "static_int8")
             performance_results = self.benchmark_quantized_performance("static_int8")
@@ -406,7 +407,7 @@ class SmolVLAQuantizer:
                 "performance": performance_results
             }
         except Exception as e:
-            print(f"❌ Failed to apply static quantization: {e}")
+            logger.error(f"Failed to apply static quantization: {e}")
             results["quantization_methods"]["static_int8"] = {"error": str(e)}
 
         results["comparison_results"] = self._generate_comparison_summary(results)
@@ -441,35 +442,35 @@ class SmolVLAQuantizer:
         return summary
     
     def print_quantization_summary(self, results: Dict[str, Any]):
-        print("\n" + "="*60)
-        print("QUANTIZATION RESULTS SUMMARY")
-        print("="*60)
+        logger.info("\n" + "="*60)
+        logger.info("QUANTIZATION RESULTS SUMMARY")
+        logger.info("="*60)
         
         comparison = results["comparison_results"]
         
-        print(f"\nBest Size Reduction: {comparison['best_size_reduction']['method']} "
+        logger.info(f"\nBest Size Reduction: {comparison['best_size_reduction']['method']} "
               f"({comparison['best_size_reduction']['reduction']:.1f}%)")
         
-        print(f"Best Speedup: {comparison['best_speedup']['method']} "
+        logger.info(f"Best Speedup: {comparison['best_speedup']['method']} "
               f"({comparison['best_speedup']['speedup']:.2f}x)")
         
-        print(f"Best Quality Preservation: {comparison['best_quality_preservation']['method']} "
+        logger.info(f"Best Quality Preservation: {comparison['best_quality_preservation']['method']} "
               f"({comparison['best_quality_preservation']['quality']})")
         
-        print(f"\nDetailed Results:")
+        logger.info(f"\nDetailed Results:")
         for method, data in results["quantization_methods"].items():
             if "error" not in data:
-                print(f"\n{method.upper()}:")
+                logger.info(f"\n{method.upper()}:")
                 if "accuracy" in data:
                     acc = data["accuracy"]
-                    print(f"  Size reduction: {acc['size_reduction_percent']:.1f}%")
-                    print(f"  Quality: {acc['quality_preservation']}")
+                    logger.info(f"  Size reduction: {acc['size_reduction_percent']:.1f}%")
+                    logger.info(f"  Quality: {acc['quality_preservation']}")
                 if "performance" in data:
                     perf = data["performance"]
-                    print(f"  Speedup: {perf['speedup_ratio']:.2f}x")
-                    print(f"  Latency: {perf['mean_latency_ms']:.2f} ms")
+                    logger.info(f"  Speedup: {perf['speedup_ratio']:.2f}x")
+                    logger.info(f"  Latency: {perf['mean_latency_ms']:.2f} ms")
             else:
-                print(f"\n{method.upper()}: ❌ {data['error']}")
+                logger.error(f"\n{method.upper()}: {data['error']}")
     
     def save_quantization_results(self, results: Dict[str, Any], 
                                 filepath: str = "results/quantization_results.json"):
@@ -478,14 +479,14 @@ class SmolVLAQuantizer:
         
         with open(filepath, 'w') as f:
             json.dump(results, f, indent=2, default=str)
-        print(f"\nQuantization results saved to: {filepath}")
+        logger.info(f"\nQuantization results saved to: {filepath}")
     
     def _get_timestamp(self) -> str:
         import time
         return time.strftime("%Y-%m-%d %H:%M:%S")
 
 if __name__ == "__main__":
-    from src.models.smolvla_analysis import SmolVLAAnalyzer
+    from .smolvla_analysis import SmolVLAAnalyzer
     analyzer = SmolVLAAnalyzer()
     quantizer = SmolVLAQuantizer(analyzer)
     results = quantizer.run_complete_quantization_pipeline()

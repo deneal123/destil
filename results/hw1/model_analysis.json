@@ -1,0 +1,9 @@
+{
+  "model_name": "RealSmolVLAModel",
+  "parameters": {
+    "total": 450046176,
+    "total_millions": 450.05,
+    "size_fp32_mb": 1716.79
+  },
+  "device": "cuda"
+}

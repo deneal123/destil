@@ -49,15 +49,3 @@ class TrainingLogger:
         if batch % self.log_every == 0:
             self.logger.debug(f"Epoch {epoch} | Batch {batch}/{total_batches} | Loss: {loss:.4f}")
 
-# NOTE: Logger provides comprehensive logging utilities for training and optimization processes
-# IMPLEMENTED: Added structured logging capabilities
-# IMPLEMENTED: Added log rotation and cleanup
-# IMPLEMENTED: Added logging to remote services
-# IMPLEMENTED: Added performance metric logging
-# IMPLEMENTED: Added experiment tracking integration
-# IMPLEMENTED: Added dashboard integration
-# IMPLEMENTED: Added alerting capabilities for anomalies
-# IMPLEMENTED: Added log analysis tools
-# IMPLEMENTED: Added privacy-compliant logging
-# IMPLEMENTED: Added distributed logging for multi-node setups
-
