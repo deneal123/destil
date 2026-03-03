@@ -4,9 +4,9 @@ A comprehensive framework for optimizing SmolVLA (Vision-Language-Action) models
 
 ## Reports
 
-- [x] ![ReportHW1](https://github.com/deneal123/destil/blob/dev/docs/hw1_report.md)
-- [x] ![ReportHW2](https://github.com/deneal123/distil/blob/dev/docs/hw2_report.md)
-- [x] ![ReportHW3](https://github.com/deneal123/distil/blob/dev/docs/hw3_report.md)
+- [ReportHW1](https://github.com/deneal123/destil/blob/dev/docs/hw1_report.md)
+- [ReportHW2](https://github.com/deneal123/destil/blob/dev/docs/hw2_report.md)
+- [ReportHW3](https://github.com/deneal123/destil/blob/dev/docs/hw3_report.md)
 
 
 ## Features
