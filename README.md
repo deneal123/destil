@@ -156,38 +156,6 @@ Key environment variables:
 - `ENABLE_PROFILING` - Enable performance profiling
 - `OUTPUT_DIR` - Default output directory
 
-### Command Line Arguments
-
-All environment variables can be overridden with command line arguments.
-
-## Results
-
-### Latest Training Run
-
-| Metric | Value |
-|--------|-------|
-| Training Samples | 500 |
-| Epochs | 5 |
-| Teacher Parameters | 3,784,199 |
-| Student Parameters | 552,967 |
-| **Speedup** | **23.8x** |
-| **Compression** | **6.8x** |
-| **Size Reduction** | **85.4%** |
-
-### Expected Optimizations
-
-| Technique | Speedup | Size Reduction |
-|----------|---------|----------------|
-| Distillation (50%) | 6-8x | 85-90% |
-| FP16 Quantization | 2x | 50% |
-| Combined | 10-15x | 90-95% |
-
-## Requirements
-
-- Python 3.13+
-- PyTorch 2.7+
-- CUDA 11.0+ (for GPU acceleration)
-
 ## License
 
 MIT License
